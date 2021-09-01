@@ -29,17 +29,17 @@ describe('node-vault', () => {
       const defaultsStub = sinon.stub();
 
       index({
-        'request-promise': {
-          defaults: defaultsStub,
+        got: {
+          extend: defaultsStub,
         },
       });
 
       defaultsStub.should.be.calledOnce();
       defaultsStub.should.be.calledWithExactly({
-        json: true,
         simple: false,
         resolveWithFullResponse: true,
-        strictSSL: true,
+        https: { rejectUnauthorized: true },
+        responseType: 'json',
       });
     });
 
@@ -47,20 +47,20 @@ describe('node-vault', () => {
       const defaultsStub = sinon.stub();
 
       index({
-        'request-promise': {
-          defaults: defaultsStub,
+        got: {
+          extend: defaultsStub,
         },
-        rpDefaults: {
+        gotDefaults: {
           fakeArgument: 1,
         },
       });
 
       defaultsStub.should.be.calledOnce();
       defaultsStub.should.be.calledWithExactly({
-        json: true,
         simple: false,
         resolveWithFullResponse: true,
-        strictSSL: true,
+        https: { rejectUnauthorized: true },
+        responseType: 'json',
         fakeArgument: 1,
       });
     });
@@ -72,17 +72,17 @@ describe('node-vault', () => {
       process.env.VAULT_SKIP_VERIFY = 'catpants';
 
       index({
-        'request-promise': {
-          defaults: defaultsStub,
+        got: {
+          extend: defaultsStub,
         },
       });
 
       defaultsStub.should.be.calledOnce();
       defaultsStub.should.be.calledWithExactly({
-        json: true,
         simple: false,
         resolveWithFullResponse: true,
-        strictSSL: false,
+        https: { rejectUnauthorized: false },
+        responseType: 'json',
       });
     });
   });
@@ -102,7 +102,7 @@ describe('node-vault', () => {
     function assertRequest(thisRequest, params, done) {
       return () => {
         thisRequest.should.have.calledOnce();
-        thisRequest.calledWithMatch(params).should.be.ok();
+        thisRequest.calledWithMatch(params.uri, params).should.be.ok();
         return done();
       };
     }
@@ -117,6 +117,9 @@ describe('node-vault', () => {
         then(fn) {
           return fn(response);
         },
+        json() {
+          return this;
+        },
         catch(fn) {
           return fn();
         },
@@ -126,8 +129,8 @@ describe('node-vault', () => {
         endpoint: 'http://localhost:8200',
         token: '123',
         namespace: 'test',
-        'request-promise': {
-          defaults: () => request, // dependency injection of stub
+        got: {
+          extend: () => request, // dependency injection of stub
         },
       };
 
@@ -144,8 +147,8 @@ describe('node-vault', () => {
           uri: `${getURI(path)}?help=1`,
         };
         vault.help(path)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
 
       it('should handle undefined options', done => {
@@ -155,8 +158,8 @@ describe('node-vault', () => {
           uri: `${getURI(path)}?help=1`,
         };
         vault.help(path)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
     });
 
@@ -195,12 +198,12 @@ describe('node-vault', () => {
           value: 'world',
         };
         const params = {
-          method: 'PUT',
+          method: 'POST',
           uri: getURI(path),
         };
         vault.write(path, data)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
 
       it('should handle undefined options', done => {
@@ -209,12 +212,12 @@ describe('node-vault', () => {
           value: 'world',
         };
         const params = {
-          method: 'PUT',
+          method: 'POST',
           uri: getURI(path),
         };
         vault.write(path, data)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
     });
 
@@ -226,8 +229,8 @@ describe('node-vault', () => {
           uri: getURI(path),
         };
         vault.read(path)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
 
       it('should handle undefined options', done => {
@@ -237,8 +240,8 @@ describe('node-vault', () => {
           uri: getURI(path),
         };
         vault.read(path)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
     });
 
@@ -250,8 +253,8 @@ describe('node-vault', () => {
           uri: getURI(path),
         };
         vault.delete(path)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
 
       it('should handle undefined options', done => {
@@ -261,8 +264,8 @@ describe('node-vault', () => {
           uri: getURI(path),
         };
         vault.delete(path)
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
     });
 
@@ -274,8 +277,8 @@ describe('node-vault', () => {
           uri: getURI(path),
         };
         vault.unwrap({ token: 'token' })
-        .then(assertRequest(request, params, done))
-        .catch(done);
+          .then(assertRequest(request, params, done))
+          .catch(done);
       });
     });
 
@@ -355,11 +358,11 @@ describe('node-vault', () => {
           path: '/v1/sys/policies/applications/im-not-sys-health/app',
         };
         vault.handleVaultResponse(response)
-        .then(() => done(error))
-        .catch(err => {
-          err.message.should.equal(`Status ${response.statusCode}`);
-          return done();
-        });
+          .then(() => done(error))
+          .catch(err => {
+            err.message.should.equal(`Status ${response.statusCode}`);
+            return done();
+          });
       });
 
       it('should return a Promise with the error if no response is passed', done => {
@@ -457,7 +460,7 @@ describe('node-vault', () => {
           /* eslint no-unused-expressions: 0*/
           promise.should.be.promise;
           promise.then(done)
-          .catch(done);
+            .catch(done);
         });
 
         it('should handle config without a schema', done => {
@@ -466,12 +469,11 @@ describe('node-vault', () => {
           const fn = vault[name];
           const promise = fn({ testProperty: 3 });
           const options = {
-            path: '/myroute',
             json: { testProperty: 3 },
           };
           promise
             .then(() => {
-              request.calledWithMatch(options).should.be.ok();
+              request.calledWithMatch(getURI('myroute'), options).should.be.ok();
               done();
             })
             .catch(done);
@@ -502,14 +504,16 @@ describe('node-vault', () => {
           const fn = vault[name];
           const promise = fn({ testParam1: 3, testParam2: 'hello' });
           const options = {
-            path: '/myroute?testParam1=3&testParam2=hello',
           };
           promise
-          .then(() => {
-            request.calledWithMatch(options).should.be.ok();
-            done();
-          })
-          .catch(done);
+            .then(() => {
+              request.calledWithMatch(
+                getURI('myroute?testParam1=3&testParam2=hello'),
+                options
+              ).should.be.ok();
+              done();
+            })
+            .catch(done);
         });
 
         it('should handle schema with request property', done => {
@@ -518,12 +522,11 @@ describe('node-vault', () => {
           const fn = vault[name];
           const promise = fn({ testParam1: 3, testParam2: 'hello' });
           const options = {
-            path: '/myroute',
             json: { testParam1: 3, testParam2: 'hello' },
           };
           promise
             .then(() => {
-              request.calledWithMatch(options).should.be.ok();
+              request.calledWithMatch(getURI('myroute'), options).should.be.ok();
               done();
             })
             .catch(done);
@@ -543,12 +546,12 @@ describe('node-vault', () => {
             const promise = fn({ testProperty: 3 });
 
             promise
-            .then(res => {
-              expect(res).to.exist();
-              vault.token.should.equal(A_RESPONSE_TOKEN);
-              done();
-            })
-            .catch(done);
+              .then(res => {
+                expect(res).to.exist();
+                vault.token.should.equal(A_RESPONSE_TOKEN);
+                done();
+              })
+              .catch(done);
           });
 
           it('should not set vault token if not found in response', done => {
@@ -563,11 +566,11 @@ describe('node-vault', () => {
             const promise = fn({ testProperty: 3 });
 
             promise
-            .then(() => {
-              vault.token.should.equal('123');
-              done();
-            })
-            .catch(done);
+              .then(() => {
+                vault.token.should.equal('123');
+                done();
+              })
+              .catch(done);
           });
         });
       });
@@ -576,8 +579,8 @@ describe('node-vault', () => {
     describe('request(options)', () => {
       it('should reject if options are undefined', done => {
         vault.request()
-        .then(() => done(error))
-        .catch(() => done());
+          .then(() => done(error))
+          .catch(() => done());
       });
 
       it('should handle undefined path in options', done => {

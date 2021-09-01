@@ -4,9 +4,9 @@ const originalDebug = require('debug')('node-vault');
 const originalTv4 = require('tv4');
 const originalCommands = require('./commands.js');
 const originalMustache = require('mustache');
-const originalRp = require('request-promise-native');
+const got = require('got');
 
-class VaultError extends Error {}
+class VaultError extends Error { }
 
 class ApiResponseError extends VaultError {
   constructor(message, response) {
@@ -25,20 +25,20 @@ module.exports = (config = {}) => {
   const commands = config.commands || originalCommands;
   const mustache = config.mustache || originalMustache;
 
-  const rpDefaults = {
-    json: true,
+  const gotDefaults = {
     resolveWithFullResponse: true,
     simple: false,
-    strictSSL: !process.env.VAULT_SKIP_VERIFY,
+    https: { rejectUnauthorized: !process.env.VAULT_SKIP_VERIFY },
+    responseType: 'json',
   };
 
-  if (config.rpDefaults) {
-    Object.keys(config.rpDefaults).forEach(key => {
-      rpDefaults[key] = config.rpDefaults[key];
+  if (config.gotDefaults) {
+    Object.keys(config.gotDefaults).forEach(key => {
+      gotDefaults[key] = config.gotDefaults[key];
     });
   }
 
-  const rp = (config['request-promise'] || originalRp).defaults(rpDefaults);
+  const gotClient = (config.got || got).extend(gotDefaults);
   const client = {};
 
   function handleVaultResponse(response) {
@@ -85,7 +85,7 @@ module.exports = (config = {}) => {
   };
 
   // Handle any HTTP requests
-  client.request = (options = {}) => {
+  client.request = async (options = {}) => {
     const valid = tv4.validate(options, requestSchema);
     if (!valid) return Promise.reject(tv4.error);
     let uri = `${client.endpoint}/${client.apiVersion}${client.pathPrefix}${options.path}`;
@@ -99,9 +99,11 @@ module.exports = (config = {}) => {
       options.headers['X-Vault-Namespace'] = client.namespace;
     }
     options.uri = uri;
+    delete options.path;
     debug(options.method, uri);
     if (options.json) debug(options.json);
-    return rp(options).then(client.handleVaultResponse);
+    const response = await gotClient(uri, options);
+    return client.handleVaultResponse(response);
   };
 
   client.help = (path, requestOptions) => {
@@ -117,7 +119,7 @@ module.exports = (config = {}) => {
     const options = Object.assign({}, config.requestOptions, requestOptions);
     options.path = `/${path}`;
     options.json = data;
-    options.method = 'PUT';
+    options.method = 'POST';
     return client.request(options);
   };
 
@@ -212,9 +214,9 @@ module.exports = (config = {}) => {
       }
       // else do validation of request URL and body
       let promise = validate(args, conf.schema.req)
-      .then(() => validate(args, conf.schema.query))
-      .then(() => extendOptions(conf, options, args))
-      .then((extendedOptions) => client.request(extendedOptions));
+        .then(() => validate(args, conf.schema.query))
+        .then(() => extendOptions(conf, options, args))
+        .then((extendedOptions) => client.request(extendedOptions));
 
       if (conf.tokenSource) {
         promise = promise.then(response => {

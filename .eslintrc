@@ -2,10 +2,11 @@
   "extends": "airbnb",
   "parserOptions": {
         "sourceType": "script",
+        "ecmaVersion": 8
   },
   "rules": {
     "strict": 0,
-    no-param-reassign: [
+    "no-param-reassign": [
       "error",
       { "props": false }
     ],
