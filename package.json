@@ -42,7 +42,7 @@
     "istanbul": "^0.4.5",
     "json-schema-to-typescript": "^10.1.4",
     "mocha": "6.0.2",
-    "sinon": "1.17.3",
+    "sinon": "14.0.0",
     "sinon-chai": "^2.8.0"
   },
   "repository": {
