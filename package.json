@@ -35,7 +35,7 @@
     "docco": "0.8.0",
     "eslint": "8.44.0",
     "eslint-config-airbnb": "^9.0.1",
-    "eslint-plugin-import": "^2.28.0",
+    "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-jsx-a11y": "6.7.0",
     "eslint-plugin-react": "^5.2.2",
     "husky": "^8.0.3",
