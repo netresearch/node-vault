@@ -101,7 +101,8 @@ module.exports = (config = {}) => {
     options.uri = uri;
     delete options.path;
     debug(options.method, uri);
-    if (options.json) debug(options.json);
+    // Avoid logging potentially sensitive request body data
+    if (options.json) debug('Request body: [REDACTED - %d keys]', Object.keys(options.json).length);
     const response = await gotClient(uri, options);
     return client.handleVaultResponse(response);
   };
@@ -115,7 +116,8 @@ module.exports = (config = {}) => {
   };
 
   client.write = (path, data, requestOptions) => {
-    debug('write %o to %s', data, path);
+    // Avoid logging potentially sensitive data being written to vault
+    debug('write [REDACTED - %d keys] to %s', data ? Object.keys(data).length : 0, path);
     const options = Object.assign({}, config.requestOptions, requestOptions);
     options.path = `/${path}`;
     options.json = data;
