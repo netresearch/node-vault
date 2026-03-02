@@ -1,3 +1,5 @@
+> **Archived.** This fork is broken — it uses got v9 API calls with got v14 installed (59 ahead / 133 behind upstream). See [#93](https://github.com/netresearch/node-vault/issues/93) for details. Consider using upstream [`nodevault/node-vault`](https://github.com/nodevault/node-vault) instead.
+
 # node-vault
 
 [![Build Status](https://img.shields.io/travis/kr1sp1n/node-vault/master.svg?style=flat-square)](https://travis-ci.org/kr1sp1n/node-vault)
